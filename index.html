@@ -44,6 +44,21 @@
       <div id="unity-warning"></div>
     </div>
     <script>
+      // After Unity instantiates, hook the canvas:
+      const resumeAudio = () => {
+        // Module.audioContext is Unity’s Web Audio context
+        if (
+          window.Module &&
+          Module.audioContext &&
+          Module.audioContext.state === "suspended"
+        ) {
+          Module.audioContext.resume().then(() => {
+            console.log("AudioContext resumed");
+          });
+        }
+        canvas.removeEventListener("touchstart", resumeAudio);
+      };
+
       function isMobileDevice() {
         return /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
       }
@@ -63,9 +78,10 @@
           overlay.style.display = "none";
         }
       }
-      
+
       window.addEventListener("resize", checkOrientation);
       window.addEventListener("load", checkOrientation);
+      canvas.addEventListener("touchstart", resumeAudio, { once: true });
 
       window.addEventListener("load", function () {
         if ("serviceWorker" in navigator) {
