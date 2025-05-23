@@ -1,21 +1,3 @@
-<style>
-  #rotateOverlay {
-    display: none;
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.8);
-    color: white;
-    font-size: 1.5em;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 9999;
-  }
-</style>
-
 <!DOCTYPE html>
 <html lang="en-us">
   <head>
@@ -25,45 +7,132 @@
     <link rel="shortcut icon" href="TemplateData/favicon.ico" />
     <link rel="stylesheet" href="TemplateData/style.css" />
     <link rel="manifest" href="manifest.webmanifest" />
+
+    <style>
+      /* rotate-overlay you already had */
+      #rotateOverlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.8);
+        color: white;
+        font-size: 1.5em;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 9999;
+      }
+
+      #unity-loading-bar.hide {
+        display: none !important;
+      }
+
+      /* START GAME button, hidden until load complete */
+      #start-button {
+        background-color: #ffffff; /* White background */
+        color: #1c0038; /* Dark-purple text to match overlay */
+        border: 2px solid #ffffff; /* White border for contrast */
+        border-radius: 8px; /* Rounded corners */
+        padding: 0.75em 2em; /* Vertical/horizontal padding */
+        font-size: 1.25em; /* Bigger text */
+        font-family: "Segoe UI", sans-serif; /* Modern, legible font */
+        font-weight: 600; /* Semi-bold */
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3); /* Subtle drop-shadow */
+        cursor: pointer;
+        transition: background-color 0.2s ease, transform 0.1s ease,
+          box-shadow 0.1s ease;
+      }
+
+      /* Hover / focus state */
+      #start-button:hover,
+      #start-button:focus {
+        background-color: #f5f5f5; /* Light grey on hover */
+        transform: translateY(-2px);
+        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.35);
+      }
+
+      /* Active (pressed) state */
+      #start-button:active {
+        transform: translateY(1px);
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+      }
+
+      #start-button-container {
+        display: none;
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        z-index: 9998;
+      }
+
+      #start-button-container button {
+        padding: 1em 2em;
+        font-size: 1.2em;
+        cursor: pointer;
+      }
+
+      #start-overlay {
+        display: none;
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: #1c0038;
+        z-index: 9997; /* just beneath the button’s z-index */
+      }
+    </style>
   </head>
+
   <body>
     <div id="unity-container">
       <div id="rotateOverlay">Please rotate your device to portrait ↕️</div>
+
+      <!-- Unity’s canvas is always visible (grey background) -->
       <canvas
         id="unity-canvas"
         width="1920"
         height="1080"
         tabindex="-1"
       ></canvas>
+
+      <!-- Default Unity loading bar -->
       <div id="unity-loading-bar">
         <div id="unity-logo"></div>
         <div id="unity-progress-bar-empty">
           <div id="unity-progress-bar-full"></div>
         </div>
       </div>
+
+      <!-- Our Start button (hidden until load = 100%) -->
+      <div id="start-overlay"></div>
+      <div id="start-button-container">
+        <button id="start-button">Kontynuuj grę</button>
+      </div>
+
       <div id="unity-warning"></div>
     </div>
+
     <script>
       function isMobileDevice() {
         return /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
       }
-
-      // Show overlay only on mobile when in landscape
       function checkOrientation() {
         const overlay = document.getElementById("rotateOverlay");
-        // If not mobile, always hide
         if (!isMobileDevice()) {
           overlay.style.display = "none";
           return;
         }
-        // On mobile: show overlay when width > height
         if (window.innerWidth > window.innerHeight) {
           overlay.style.display = "flex";
         } else {
           overlay.style.display = "none";
         }
       }
-      
       window.addEventListener("resize", checkOrientation);
       window.addEventListener("load", checkOrientation);
 
@@ -78,13 +147,8 @@
       var loadingBar = document.querySelector("#unity-loading-bar");
       var progressBarFull = document.querySelector("#unity-progress-bar-full");
       var warningBanner = document.querySelector("#unity-warning");
+      var startOverlay = document.getElementById("start-overlay");
 
-      // Shows a temporary message banner/ribbon for a few seconds, or
-      // a permanent error message on top of the canvas if type=='error'.
-      // If type=='warning', a yellow highlight color is used.
-      // Modify or remove this function to customize the visually presented
-      // way that non-critical warnings and error messages are presented to the
-      // user.
       function unityShowBanner(msg, type) {
         function updateBannerVisibility() {
           warningBanner.style.display = warningBanner.children.length
@@ -106,8 +170,6 @@
         updateBannerVisibility();
       }
 
-      
-
       var buildUrl = "Build";
       var loaderUrl = buildUrl + "/Build.loader.js";
       var config = {
@@ -121,15 +183,7 @@
         showBanner: unityShowBanner,
       };
 
-      // By default Unity keeps WebGL canvas render target size matched with
-      // the DOM size of the canvas element (scaled by window.devicePixelRatio)
-      // Set this to false if you want to decouple this synchronization from
-      // happening inside the engine, and you would instead like to size up
-      // the canvas DOM size and WebGL render target sizes yourself.
-      // config.matchWebGLToCanvasSize = false;
-
       if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
-        // Mobile device style: fill the whole browser client area with the game canvas:
         var meta = document.createElement("meta");
         meta.name = "viewport";
         meta.content =
@@ -137,19 +191,47 @@
         document.getElementsByTagName("head")[0].appendChild(meta);
       }
 
+      // ensure loading bar is visible until user starts the game
       loadingBar.style.display = "block";
 
+      // references to our new Start Game UI
+      var startWrapper = document.getElementById("start-button-container");
+      var startButton = document.getElementById("start-button");
+
+      // load Unity’s loader script
       var script = document.createElement("script");
       script.src = loaderUrl;
       script.onload = () => {
         createUnityInstance(canvas, config, (progress) => {
+          // update the bar…
           progressBarFull.style.width = 100 * progress + "%";
+
+          if (progress >= 1) {
+            // ── 1) hide the default Unity loader (logo + bar)
+            loadingBar.classList.add("hide");
+            // ── 2) show our “Start Game” button
+            startWrapper.style.display = "flex";
+            startOverlay.style.display = "block"; // show purple screen
+          }
         })
           .then((unityInstance) => {
-            loadingBar.style.display = "none";
+            // only on real click do we:
+            // • hide our overlay button
+            // • resume Web Audio (that was stuck in 'suspended')
+            startButton.addEventListener("click", () => {
+              startWrapper.style.display = "none";
+              startOverlay.style.display = "none";
+              if (
+                window.Module &&
+                Module.audioContext &&
+                Module.audioContext.state === "suspended"
+              ) {
+                Module.audioContext.resume();
+              }
+            });
           })
           .catch((message) => {
-            alert(message);
+            alert("Failed to load Unity: " + message);
           });
       };
       document.body.appendChild(script);
