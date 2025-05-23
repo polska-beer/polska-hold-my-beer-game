@@ -81,7 +81,7 @@
 
       window.addEventListener("resize", checkOrientation);
       window.addEventListener("load", checkOrientation);
-      canvas.addEventListener("touchstart", resumeAudio, { once: true });
+      window.addEventListener("touchstart", resumeAudio, { once: true });
 
       window.addEventListener("load", function () {
         if ("serviceWorker" in navigator) {
